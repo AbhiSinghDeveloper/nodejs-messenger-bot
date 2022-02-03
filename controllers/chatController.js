@@ -27,7 +27,6 @@ let getWebhook = (req, res) => {
     }
 };
 
-
 let postWebhook = (req, res) => {
     // Parse the request body from the POST
     let body = req.body;
@@ -74,6 +73,92 @@ let postWebhook = (req, res) => {
         res.sendStatus(404);
     }
 };
+
+function callSendAPI(sender_psid, response, quick_reply = { "text": "" }) {
+    // Construct the message body
+    let request_body;
+
+    if (!quick_reply.text) {
+        request_body = {
+            "recipient": {
+                "id": sender_psid
+            },
+            "message": { "text": response }
+        };
+    }
+    else {
+        request_body = {
+            "recipient": {
+                "id": sender_psid
+            },
+            "messaging_type": "RESPONSE",
+            "message": quick_reply
+        };
+    }
+
+
+    // Send the HTTP request to the Messenger Platform
+    request({
+        "uri": "https://graph.facebook.com/v7.0/me/messages",
+        "qs": { "access_token": process.env.PAGE_ACCESS_TOKEN },
+        "method": "POST",
+        "json": request_body
+    }, (err, res, body) => {
+        if (!err) {
+            console.log('message sent!');
+        } else {
+            console.error("Unable to send message:" + err);
+        }
+    });
+}
+
+function callSendPromo(sender_psid, quick_reply) {
+    // Construct the message body
+    let request_body = {
+        "recipient": {
+            "id": sender_psid
+        },
+        "messaging_type": "RESPONSE",
+        "message": quick_reply
+    };
+
+    // Send the HTTP request to the Messenger Platform
+    request({
+        "uri": "https://graph.facebook.com/v7.0/me/messages",
+        "qs": { "access_token": process.env.PAGE_ACCESS_TOKEN },
+        "method": "POST",
+        "json": request_body
+    }, (err, res, body) => {
+        if (!err) {
+            console.log('message sent!');
+        } else {
+            console.error("Unable to send message:" + err);
+        }
+    });
+}
+
+function handleMessage(sender_psid, message) {
+    // check kind of message
+    try {
+        if (message.quick_reply) {
+            handleQuickReply(sender_psid, message);
+        } else if (message.attachments) {
+            handleAttachmentMessage(sender_psid, message);
+        } else if (message.text) {
+            handleTextMessage(sender_psid, message);
+        }
+        else {
+            callSendAPI(sender_psid, `The bot needs more training. You said "${message.text}". Try to say "Hi" or "#start_over" to restart the conversation..`);
+        }
+    }
+    catch (error) {
+        console.error(error);
+        callSendAPI(sender_psid, `An error has occured: '${error}'. We have been notified and will fix the issue shortly!`);
+    }
+}
+
+
+
 
 
 module.exports = {
