@@ -126,6 +126,186 @@ function handleMessage(sender_psid, message) {
     }
 }
 
+function handleTextMessage(sender_psid, message) {
+    // getting current message
+    let mess = message.text;
+    mess = mess.toLowerCase();
+
+    PREV_OF_PREV = PREV_OF_LATEST;
+    PREV_OF_LATEST = LATEST_MESSAGE;
+    LATEST_MESSAGE = mess;
+
+    // message.nlp did not work -> made a workaround
+    let greeting = ["hello", "hi", "hey"];
+    let accept_conv = ["yup", "yes", "yeah", "sure", "yep", "i do"];
+    let deny_conv = ["no", "nah", "nope", "notnow", "maybe later"];
+    let thanks_conv = ["thanks", "thx", "thank you", "thank you very much", "thanks a lot", "thanks!", "thank you!"];
+
+    let resp;
+
+    // reinitialize conversation
+    if (mess === "#Start_Again") {
+        USER_FIRST_NAME = "";
+        USER_BIRTH_DATE = "";
+        LATEST_MESSAGE = "";
+        PREV_OF_LATEST = "";
+        PREV_OF_PREV = "";
+
+        // uncomment following for clearing messages
+        // ARR_MESSAGES = [];
+        // COUNT_MESSAGES = 0;
+    }
+
+    // greeting case
+    if (greeting.includes(mess) || mess === "#Start_Again") {
+        if (USER_FIRST_NAME === "") {
+            resp = {
+                "text": "(Hello There!! Would you like to answer few questions?",
+                "quick_replies": [
+                    {
+                        "content_type": "text",
+                        "title": "Yes Ofcourse",
+                        "payload": "yesofcourse"
+                    }, {
+                        "content_type": "text",
+                        "title": "Not Now, sometimes later",
+                        "payload": "notnow"
+                    }
+                ]
+            }
+            callSendAPI(sender_psid, ``, resp);
+        } else {
+            callSendAPI(sender_psid, `This bot doesn't understand "${message.text}". Try to say "Hi" or "#Start_Again" to restart the conversation.`);
+        }
+
+    }
+    // accept case
+    else if (accept_conv.includes(mess)) {
+        if (USER_FIRST_NAME === "") {
+            if (countWords(LATEST_MESSAGE) === 1 && !greeting.includes(PREV_OF_PREV)) {
+                for (var i = 0; i < accept_conv.length; i++) {
+                    if (mess.includes(accept_conv[i]))
+                        break;
+                }
+
+                if (i !== accept_conv.length) {
+                    USER_FIRST_NAME = capitalizeFirstLetter(extractName());
+                    console.log(USER_FIRST_NAME);
+
+                    callSendAPI(sender_psid, `Thanks for confirming ${USER_FIRST_NAME}. Now, please tell me your Date Of Birth in the given format i.e. YYYY-MM-DD`);
+                }
+                else {
+                    callSendAPI(sender_psid, `That's Awesome!! Can I know your first name?`);
+                }
+            }
+            else {
+                callSendAPI(sender_psid, `That's Awesome!! Can I know your first name?`);
+            }
+        }
+        else if (USER_BIRTH_DATE === "") {
+            if (countWords(LATEST_MESSAGE) === 1 && (extractDate().split("-").length - 1) === 2) {
+                USER_BIRTH_DATE = PREV_OF_LATEST;
+                console.log(USER_BIRTH_DATE);
+
+                let resp = {
+                    "text": `Thanks for confirming ${USER_FIRST_NAME}. Would you like to know how many days are left for your next birtday?`,
+                    "quick_replies": [
+                        {
+                            "content_type": "text",
+                            "title": "Yes Please",
+                            "payload": "yesplease"
+                        }, {
+                            "content_type": "text",
+                            "title": "No Thanks",
+                            "payload": "nothanks"
+                        }
+                    ]
+                };
+
+                callSendAPI(sender_psid, ``, resp);
+            }
+            else {
+                callSendAPI(sender_psid, `Thanks for confirming ${USER_FIRST_NAME}. Now, please tell me your Date Of Birth in the given format i.e. YYYY-MM-DD`);
+            }
+        }
+        else if (USER_FIRST_NAME !== "" && USER_BIRTH_DATE !== "") {
+            let days_left = countBirthDays();
+
+            // bad information introduced
+            if (days_left === -1) {
+                callSendAPI(sender_psid, `You have entered an invalid Date of Birth. \n\nGoodbye 🖐\n\n If you wish to start this conversation again write "#Start_Again".`);
+            }
+            else {
+                // sending 2 carousel products
+                // let resp = initialGifts();
+
+                callSendAPI(sender_psid, `There are ${days_left} days until your next birthday. Here are some gifts you can buy for yourself 🙂`);
+                // callSendPromo(sender_psid, resp);
+            }
+        }
+        else {
+            callSendAPI(sender_psid, `This bot doesn't understand "${message.text}". Try to say "Hi" or "#Start_Again" to restart the conversation.`);
+        }
+
+    }
+    // deny case
+    else if (deny_conv.includes(mess)) {
+        callSendAPI(sender_psid, `Thank you for your answer.\n\n Goodbye 🖐\n\n If you wish to start this conversation again write "#Start_Again".`);
+    }
+    // gratitude case
+    else if (thanks_conv.includes(mess)) {
+        callSendAPI(sender_psid, `You're welcome! If you wish to start this conversation again write "#Start_Again". Goodbye 🖐`);
+    }
+    // user may have introduced first name and/or birth date
+    else {
+        let resp;
+
+        // if we don't know user first name yet
+        if (!USER_FIRST_NAME) {
+            LATEST_MESSAGE = capitalizeFirstLetter(LATEST_MESSAGE);
+            resp = {
+                "text": `Your first name is ${LATEST_MESSAGE}. Press "Yes" to confirm, Else press "No"`,
+                "quick_replies": [
+                    {
+                        "content_type": "text",
+                        "title": "Yes",
+                        "payload": "yes"
+                    }, {
+                        "content_type": "text",
+                        "title": "No",
+                        "payload": "no"
+                    }
+                ]
+            };
+
+            callSendAPI(sender_psid, ``, resp);
+
+        } // if we don't know user birth date yet
+        else if (!USER_BIRTH_DATE) {
+            resp = {
+                "text": `Your Date of Birth is ${LATEST_MESSAGE}. Press "Yeah" to confirm, Else press "Nah"`,
+                "quick_replies": [
+                    {
+                        "content_type": "text",
+                        "title": "Yeah",
+                        "payload": "yeah"
+                    }, {
+                        "content_type": "text",
+                        "title": "Nah",
+                        "payload": "nah"
+                    }
+                ]
+            };
+
+            callSendAPI(sender_psid, ``, resp);
+        }
+        // something else
+        else {
+            callSendAPI(sender_psid, `Thank you for your answer.\n\n Goodbye 🖐\n\n If you wish to start this conversation again write "#Start_Again".`);
+        }
+    }
+}
+
 function handleQuickReply(sender_psid, message) {
     let mess = message.text;
     mess = mess.toLowerCase();
@@ -202,6 +382,9 @@ function handleQuickReply(sender_psid, message) {
     }
 }
 
+function handleAttachmentMessage(sender_psid, message) {
+    callSendAPI(sender_psid, `From handle attachment message. You said ${message.text}`);
+}
 
 
 
