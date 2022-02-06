@@ -84,6 +84,26 @@ function countWords(str) {
     return matches ? matches.length : 0;
 }
 
+function extractName(givenName = PREV_OF_LATEST) {
+    let name = "";
+    for (let i = 3; i < givenName.length; i++) {
+        if (givenName[i] === ' ') break;
+
+        name += givenName[i];
+    }
+    return name;
+}
+
+function extractDate(givenDate = PREV_OF_LATEST) {
+    let dt = "";
+    for (let i = 3; i < givenDate.length; i++) {
+        if (givenDate[i] === ' ') break;
+
+        dt += givenDate[i];
+    }
+    return dt;
+}
+
 function callSendAPI(sender_psid, response, quick_reply = { "text": "" }) {
     // Construct the message body
     let request_body;
