@@ -104,6 +104,26 @@ function extractDate(givenDate = PREV_OF_LATEST) {
     return dt;
 }
 
+function countBirthDays(birthDate = USER_BIRTH_DATE) {
+    var today = new Date();
+
+    // we extract user birth date information in decimal
+    var user_year = parseInt(birthDate.substring(0, 4), 10);
+    var user_month = parseInt(birthDate.substring(5, 7), 10);
+    var user_day = parseInt(birthDate.substring(8, 10), 10);
+
+    // bad information introduced
+    if (user_year >= today.getFullYear() || user_month > 12 || user_day > 31) {
+        return -1;
+    }
+    else { // valid information -> proceed to calculus
+        const oneDay = 24 * 60 * 60 * 1000; // hours*minutes*seconds*milliseconds
+        let days_left = Math.round(Math.abs(((today - new Date(today.getFullYear(), user_month - 1, user_day)) / oneDay)));
+
+        return days_left;
+    }
+}
+
 function callSendAPI(sender_psid, response, quick_reply = { "text": "" }) {
     // Construct the message body
     let request_body;
