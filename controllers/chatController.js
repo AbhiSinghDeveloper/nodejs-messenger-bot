@@ -55,12 +55,6 @@ let postWebhook = (req, res) => {
 
                 postMessage(req, res);
                 handleMessage(sender_psid, webhook_event.message);
-            } else if (webhook_event.postback) {
-                COUNT_MESSAGES += 1;
-
-                postMessage(req, res);
-                WEBHOOK_MESS = webhook_event.postback.payload;
-                handlePostback(sender_psid, webhook_event.postback);
             }
 
         });
@@ -112,50 +106,85 @@ function callSendAPI(sender_psid, response, quick_reply = { "text": "" }) {
     });
 }
 
-function callSendPromo(sender_psid, quick_reply) {
-    // Construct the message body
-    let request_body = {
-        "recipient": {
-            "id": sender_psid
-        },
-        "messaging_type": "RESPONSE",
-        "message": quick_reply
-    };
+function handleQuickReply(sender_psid, message) {
+    let mess = message.text;
+    mess = mess.toLowerCase();
 
-    // Send the HTTP request to the Messenger Platform
-    request({
-        "uri": "https://graph.facebook.com/v7.0/me/messages",
-        "qs": { "access_token": process.env.PAGE_ACCESS_TOKEN },
-        "method": "POST",
-        "json": request_body
-    }, (err, res, body) => {
-        if (!err) {
-            console.log('message sent!');
-        } else {
-            console.error("Unable to send message:" + err);
-        }
-    });
-}
-
-function handleMessage(sender_psid, message) {
-    // check kind of message
-    try {
-        if (message.quick_reply) {
-            handleQuickReply(sender_psid, message);
-        } else if (message.attachments) {
-            handleAttachmentMessage(sender_psid, message);
-        } else if (message.text) {
-            handleTextMessage(sender_psid, message);
+    // user agreed to answer questions
+    if (mess === "yesofcourse") {
+        if (!USER_FIRST_NAME) {
+            callSendAPI(sender_psid, `That's Awesome!! Can I know your first name?`);
         }
         else {
-            callSendAPI(sender_psid, `The bot needs more training. You said "${message.text}". Try to say "Hi" or "#start_over" to restart the conversation..`);
+            callSendAPI(sender_psid, `This bot doesn't understand "${message.text}". Try to say "Hi" or "#Start_Again" to restart the conversation.`);
         }
     }
-    catch (error) {
-        console.error(error);
-        callSendAPI(sender_psid, `An error has occured: '${error}'. We have been notified and will fix the issue shortly!`);
+    // user agreed on his first name
+    else if (mess === "yes") {
+        for (let i = 3; i < LATEST_MESSAGE.length; i++) {
+            USER_FIRST_NAME += LATEST_MESSAGE[i];
+
+            if (LATEST_MESSAGE[i] === " ") break;
+        }
+        USER_FIRST_NAME = capitalizeFirstLetter(USER_FIRST_NAME);
+        console.log(USER_FIRST_NAME);
+
+        callSendAPI(sender_psid, `Thanks for confirming ${USER_FIRST_NAME}. Now, please tell me your Date Of Birth in the given format i.e. YYYY-MM-DD`);
+    }
+    // user agreed on his birth date
+    else if (mess === "yeah") {
+        for (let i = 3; i < LATEST_MESSAGE.length; i++) {
+            USER_BIRTH_DATE += LATEST_MESSAGE[i];
+
+            if (LATEST_MESSAGE[i] === " ") break;
+        }
+        console.log(USER_BIRTH_DATE);
+
+        let resp = {
+            "text": `Thanks for confirming ${USER_FIRST_NAME}. Would you like to know how many days are left for your next birtday?`,
+            "quick_replies": [
+                {
+                    "content_type": "text",
+                    "title": "Yes Please let me know",
+                    "payload": "yesplease"
+                }, {
+                    "content_type": "text",
+                    "title": "No Thanks",
+                    "payload": "nothanks"
+                }
+            ]
+        };
+
+        callSendAPI(sender_psid, ``, resp);
+    }
+    // user agreed to know birth date days
+    else if (mess === "yesplease") {
+        let days_left = countBirthDays();
+
+        // bad information introduced
+        if (days_left === -1) {
+            callSendAPI(sender_psid, `You have entered an invalid Date of Birth. \n\nGoodbye 🖐\n\n If you wish to start this conversation again write "#Start_Again".`);
+        }
+        else { // valid information -> proceed to calculus
+
+            // sending 2 carousel products
+            // let resp = initialGifts();
+
+            callSendAPI(sender_psid, `There are ${days_left} days until your next birthday. Here are some gifts you can buy for yourself 🙂`);
+            // callSendPromo(sender_psid, resp);
+        }
+    }
+    else if (mess === "notnow" || mess === "no" || mess === "nah" || mess === "nothanks") {
+        callSendAPI(sender_psid, `Thank you for your answer.\n\n Goodbye 🖐\n\n If you wish to start this conversation again write "#Start_Again".`);
+    }
+    else {
+        callSendAPI(sender_psid, `This bot doesn't understand "${message.text}". Try to say "Hi" or "#Start_Again" to restart the conversation.`);
     }
 }
+
+
+
+
 
 
 
