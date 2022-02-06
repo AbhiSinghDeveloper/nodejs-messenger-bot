@@ -1,6 +1,17 @@
 require("dotenv").config();
 const request = require("request");
 
+// global variables used for conversation information
+let USER_FIRST_NAME = "";
+let USER_BIRTH_DATE = "";
+let LATEST_MESSAGE = "";
+let PREV_OF_LATEST = "";
+let PREV_OF_PREV = "";
+let WEBHOOK_MESS = "";
+let MESSAGE_ID = "";
+let SENDER_ID = "";
+let COUNT_MESSAGES = 0;
+
 let getWebhook = (req, res) => {
     // Your verify token. Should be a random string.
     let VERIFY_TOKEN = process.env.VERIFY_TOKEN;
@@ -67,6 +78,11 @@ let postWebhook = (req, res) => {
         res.sendStatus(404);
     }
 };
+
+function countWords(str) {
+    var matches = str.match(/[\w\d\’\'-]+/gi);
+    return matches ? matches.length : 0;
+}
 
 function callSendAPI(sender_psid, response, quick_reply = { "text": "" }) {
     // Construct the message body
