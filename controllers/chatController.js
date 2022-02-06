@@ -106,6 +106,26 @@ function callSendAPI(sender_psid, response, quick_reply = { "text": "" }) {
     });
 }
 
+function handleMessage(sender_psid, message) {
+    // check kind of message
+    try {
+        if (message.quick_reply) {
+            handleQuickReply(sender_psid, message);
+        } else if (message.attachments) {
+            handleAttachmentMessage(sender_psid, message);
+        } else if (message.text) {
+            handleTextMessage(sender_psid, message);
+        }
+        else {
+            callSendAPI(sender_psid, `This bot doesn't understand "${message.text}". Try to say "Hi" or "#Start_Again" to restart the conversation..`);
+        }
+    }
+    catch (error) {
+        console.error(error);
+        callSendAPI(sender_psid, `An error has occured: '${error}'. We have been notified and will fix the issue shortly!`);
+    }
+}
+
 function handleQuickReply(sender_psid, message) {
     let mess = message.text;
     mess = mess.toLowerCase();
