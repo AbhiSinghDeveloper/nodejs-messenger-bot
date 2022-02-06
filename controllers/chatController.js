@@ -206,10 +206,6 @@ function handleTextMessage(sender_psid, message) {
         LATEST_MESSAGE = "";
         PREV_OF_LATEST = "";
         PREV_OF_PREV = "";
-
-        // uncomment following for clearing messages
-        // ARR_MESSAGES = [];
-        // COUNT_MESSAGES = 0;
     }
 
     // greeting case
@@ -292,11 +288,8 @@ function handleTextMessage(sender_psid, message) {
                 callSendAPI(sender_psid, `You have entered an invalid Date of Birth. \n\nGoodbye 🖐\n\n If you wish to start this conversation again write "#Start_Again".`);
             }
             else {
-                // sending 2 carousel products
-                // let resp = initialGifts();
 
                 callSendAPI(sender_psid, `There are ${days_left} days until your next birthday. Here are some gifts you can buy for yourself 🙂`);
-                // callSendPromo(sender_psid, resp);
             }
         }
         else {
@@ -422,12 +415,7 @@ function handleQuickReply(sender_psid, message) {
             callSendAPI(sender_psid, `You have entered an invalid Date of Birth. \n\nGoodbye 🖐\n\n If you wish to start this conversation again write "#Start_Again".`);
         }
         else { // valid information -> proceed to calculus
-
-            // sending 2 carousel products
-            // let resp = initialGifts();
-
             callSendAPI(sender_psid, `There are ${days_left} days until your next birthday. Here are some gifts you can buy for yourself 🙂`);
-            // callSendPromo(sender_psid, resp);
         }
     }
     else if (mess === "notnow" || mess === "no" || mess === "nah" || mess === "nothanks") {
