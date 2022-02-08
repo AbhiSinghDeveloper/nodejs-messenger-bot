@@ -17,6 +17,7 @@
     "middleware": "^1.0.0",
     "mongodb": "^3.6.1",
     "mongoose": "^5.10.3",
-    "request": "^2.88.2"
+    "request": "^2.88.2",
+    "nodemon": "^2.0.4"
   }
 }
