@@ -1,5 +1,8 @@
 require("dotenv").config();
 const request = require("request");
+const { v4: uuidv4 } = require('uuid');
+const Message = require("../models/Message");
+
 
 // global variables used for conversation information
 let USER_FIRST_NAME = "";
@@ -11,6 +14,98 @@ let WEBHOOK_MESS = "";
 let MESSAGE_ID = "";
 let SENDER_ID = "";
 let COUNT_MESSAGES = 0;
+
+function checkInDB(arrMess, givenId = SENDER_ID) {
+    for (let i = 0; i < arrMess.length; i++) {
+        if (arrMess[i].senderId === givenId) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+let postMessage = (req, res) => {
+    if ((COUNT_MESSAGES % 2) == 0)
+        return;
+
+    let MongoClient = require('mongodb').MongoClient;
+
+    // creating the message object
+    let obj = new Message({
+        senderId: SENDER_ID,
+        messages: [{MESSAGE_ID: WEBHOOK_MESS}]
+    });
+
+    console.log("OBJ: " + obj);
+
+    MongoClient.connect(
+        process.env.DB_CONNECTION, {
+        auth: {
+            user: process.env.MONGO_DB_USER,
+            password: process.env.MONGO_DB_PASSWORD
+        }
+    },
+        {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        },
+        function (err, client) {
+            if (err) {
+                throw err;
+            }
+
+            console.log("DB Connected");
+
+            // Get database name
+            let db = client.db(process.env.DB_NAME);
+
+            // we search if user already in database
+            db.collection(process.env.DB_COLLECTION).find({}).toArray(function (err, result) {
+                if (err) {
+                    throw err;
+                }
+
+                console.log("Display data: " + result);
+
+                // check whether user is in DB
+                let posInDB = checkInDB(result);
+
+                // if user is not in DB
+                if (posInDB < 0) {
+                    db.collection(process.env.DB_COLLECTION).insertOne(obj, function (error, res) {
+                        if (error) {
+                            throw error;
+                        }
+
+                        // console.log("1 message inserted for not in DB userId=" + SENDER_ID);
+                        client.close();
+                    });
+                }
+                // user is in DB
+                else {
+                    let usrArrMess = result[posInDB].text;
+                    console.log("User messages: " + usrArrMess);
+
+                    let newText = [];
+                    for (let i = 0; i < usrArrMess.length; i++)
+                        newText.push(usrArrMess[i]);
+                    newText.push(WEBHOOK_MESS);
+
+                    // or with spread operator
+                    // newText = [...usrArrMess];
+
+                    db.collection(process.env.DB_COLLECTION).update(
+                        { _id: result[posInDB]._id },
+                        { $set: { messages: newText } }
+                    )
+
+                    console.log("1 message inserted for in DB userId=" + SENDER_ID);
+                    client.close();
+                }
+            });
+        }
+    );
+}
 
 let getWebhook = (req, res) => {
     // Your verify token. Should be a random string.
@@ -63,10 +158,18 @@ let postWebhook = (req, res) => {
                 COUNT_MESSAGES += 1;
 
                 WEBHOOK_MESS = webhook_event.message.text;
+                MESSAGE_ID = webhook_event.message.uuidv4();
 
                 postMessage(req, res);
                 handleMessage(sender_psid, webhook_event.message);
-            }
+            } 
+            // else if (webhook_event.postback) {
+            //     COUNT_MESSAGES += 1;
+
+            //     postMessage(req, res);
+            //     WEBHOOK_MESS = webhook_event.postback.payload;
+            //     handlePostback(sender_psid, webhook_event.postback);
+            // }
 
         });
 
@@ -439,6 +542,7 @@ function handleAttachmentMessage(sender_psid, message) {
 
 module.exports = {
     postWebhook: postWebhook,
-    getWebhook: getWebhook
+    getWebhook: getWebhook,
+    postMessage: postMessage
 };
 
