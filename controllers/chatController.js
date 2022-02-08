@@ -1,6 +1,6 @@
 require("dotenv").config();
 const request = require("request");
-const { v4: uuidv4 } = require('uuid');
+// const { v4: uuidv4 } = require('uuid');
 const Message = require("../models/Message");
 
 
@@ -158,7 +158,7 @@ let postWebhook = (req, res) => {
                 COUNT_MESSAGES += 1;
 
                 WEBHOOK_MESS = webhook_event.message.text;
-                MESSAGE_ID = webhook_event.message.uuidv4();
+                MESSAGE_ID = webhook_event.message.mid;
 
                 postMessage(req, res);
                 handleMessage(sender_psid, webhook_event.message);
